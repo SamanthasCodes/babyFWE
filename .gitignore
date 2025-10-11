@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# VS Code
+.vscode/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs & artifacts
+logs/
+*.log
+
+# Neuroimaging data — keep OFF GitHub
+sub-*/
+sourcedata/
+derivatives/
+scratch/
+*.nii
+*.nii.gz
+*.bval
+*.bvec
+*.tsv
+
+# Allow only template JSONs
+*.json
+!bids_templates/*.json
