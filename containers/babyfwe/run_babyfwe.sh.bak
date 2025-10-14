@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: run_babyfwe <BIDS_ROOT> <OUT_DIR> <SUBJECT_ID> [SESSION_ID]
+# Example:
+#   run_babyfwe /data /data/derivatives/fwe sub-CC00339XX18 ses-107200
+
+if [[ $# -lt 3 ]]; then
+  echo "Usage: $0 <BIDS_ROOT> <OUT_DIR> <SUBJECT_ID> [SESSION_ID]"
+  exit 2
+fi
+
+BIDS_ROOT="$1"
+OUT_DIR="$2"
+SUBJ="$3"
+SES="${4:-}"   # optional
+
+# Resources (tweak per machine)
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-4}"
+export NUMEXPR_MAX_THREADS="${NUMEXPR_MAX_THREADS:-4}"
+
+# Resolve DWI path (BIDS-ish)
+if [[ -n "$SES" ]]; then
+  DWI_DIR="${BIDS_ROOT}/${SUBJ}/${SES}/dwi"
+else
+  DWI_DIR="${BIDS_ROOT}/${SUBJ}/dwi"
+fi
+
+DWI="$(ls "${DWI_DIR}/${SUBJ}"*dwi.nii* 2>/dev/null | head -n1 || true)"
+BVAL="$(ls "${DWI_DIR}/${SUBJ}"*.bval     2>/dev/null | head -n1 || true)"
+BVEC="$(ls "${DWI_DIR}/${SUBJ}"*.bvec     2>/dev/null | head -n1 || true)"
+MASK="$(ls "${DWI_DIR}/${SUBJ}"*mask*.nii* 2>/dev/null | head -n1 || true)"
+
+if [[ -z "${DWI}" || -z "${BVAL}" || -z "${BVEC}" ]]; then
+  echo "[ERROR] Could not find dwi/bval/bvec for ${SUBJ} (and session '${SES}')."
+  echo "       Looked in: ${DWI_DIR}"
+  exit 3
+fi
+
+mkdir -p "${OUT_DIR}/${SUBJ}"
+LOG_DIR="${OUT_DIR}/logs/${SUBJ}"
+mkdir -p "${LOG_DIR}"
+
+echo "[INFO] Running FWE for ${SUBJ}  (session='${SES}')"
+echo "[INFO] DWI : ${DWI}"
+echo "[INFO] BVAL: ${BVAL}"
+echo "[INFO] BVEC: ${BVEC}"
+echo "[INFO] MASK: ${MASK:-<none>} (optional)"
+echo "[INFO] Out : ${OUT_DIR}/${SUBJ}"
+echo "[INFO] Threads: ${OMP_NUM_THREADS}"
+
+python /app/scripts/run_babyFWE.py \
+  --dwi "${DWI}" \
+  --bval "${BVAL}" \
+  --bvec "${BVEC}" \
+  --mask "${MASK:-}" \
+  --out  "${OUT_DIR}/${SUBJ}" \
+  --subject "${SUBJ}" \
+  ${SES:+--session "${SES}"} \
+  2>&1 | tee -a "${LOG_DIR}/run.log"
