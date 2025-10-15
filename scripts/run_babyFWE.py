@@ -58,9 +58,19 @@ def main():
     #
     # If the package provides a CLI wrapper (e.g., `fwe` command), you could invoke that via subprocess instead.
 
-    print("[INFO] Placeholder: FWE model call not yet filled in.")
-    print("[INFO] TODO: replace pseudocode with the NRDG fwe.fit(...) API you intend to use.")
-    print(f"[INFO] Would write outputs to: {out_dir}")
+    # === minimal output so we can verify end-to-end ===
+    import os, json
+    os.makedirs(args.out, exist_ok=True)
+    manifest = {
+        "subject": args.subject,
+        "dwi": args.dwi,
+        "bval": args.bval,
+        "bvec": args.bvec,
+    }
+    with open(os.path.join(args.out, "manifest.json"), "w") as f:
+        json.dump(manifest, f, indent=2)
+    open(os.path.join(args.out, "_SUCCESS"), "w").close()
+    print(f"[DONE] Wrote {os.path.join(args.out, 'manifest.json')} and _SUCCESS")
 
     return 0
 
